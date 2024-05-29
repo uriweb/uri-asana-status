@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	die( '-1' );
 }
 
+define( 'URI_ADMIN_STATUS_PATH', plugin_dir_path( __FILE__ ) );
+define( 'URI_ADMIN_STATUS_URL', str_replace( '/assets', '/', plugins_url( 'assets', __FILE__ ) ) );
+
 /**
  * Include css and js
  */
@@ -29,3 +32,6 @@ function uri_asana_status_enqueues() {
 
 }
 add_action( 'wp_enqueue_scripts', 'uri_asana_status_enqueues' );
+
+// Include the admin settings screen
+include_once( URI_ADMIN_STATUS_PATH . 'inc/uri-asana-status-settings.php' );
