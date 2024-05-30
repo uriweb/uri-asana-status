@@ -1,2 +1,35 @@
 /* ======= STYLES ======= */
 
+.uri-asana-results {
+
+    list-style: none;
+    margin: 0 0 2rem;
+
+    .task {
+
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        background: #eee;
+        border-radius: .2rem;
+        margin-bottom: .2rem;
+
+        &.request {
+            background: #fff2b7;
+        }
+
+        &.in-progress {
+            background: #cde5ff;
+        }
+
+        &.pending-client {
+            background: #e1ddff;
+        }
+
+        & > div {
+            display: inline;
+            padding: .2rem .5rem;
+        }
+
+    }
+
+}
