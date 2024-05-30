@@ -1,11 +1,1 @@
-/**
- * SCRIPTS
- *
- * @package uri-asana-status
- */
-
-( function() {
-
-	/* Do something on page load */
-
-})();
+window.addEventListener("load",(async()=>{console.log("running...");const t=document.getElementById("uri-asana-status");if(null===t)return!1;const s=uriAsanaStatus.token,e=(uriAsanaStatus.project,{Authorization:`Bearer ${s}`});!async function(t,s){console.log("validating token...");const e=await fetch("https://app.asana.com/api/1.0/users/me",{headers:s});if(!e.ok){const t="Your personal access token is invalid. For documentation, see: https://developers.asana.com/docs/personal-access-token";console.log(t)}}(0,e),function(t,s){console.log("formatting results..."),console.log("tasks",t);let e=document.createElement("ul");e.classList="uri-asana-results";for(let s in t){let a=t[s],o=document.createElement("li");o.classList=`task ${a.status.toLowerCase().replace(" ","-")}`;let n=`<div class="task-ID">${a.rid}</div>`;n+=`<div class="task-status">${a.status}</div>`,o.innerHTML=n,e.appendChild(o)}s.appendChild(e)}(await async function(t,s){console.log("extracting tasks...");try{let t=await async function(){console.log("getting tasks...");const t={method:"GET",headers:{accept:"application/json",authorization:"Bearer "+uriAsanaStatus.token}},s=10;let e=0;for(;e<s;){const s=await fetch("https://app.asana.com/api/1.0/projects/"+uriAsanaStatus.project+"/tasks?opt_fields=name,custom_fields.name,custom_fields.display_value&completed_since=now&opt_pretty=true",t);if(200===s.status)return(await s.json()).data;if(s.status>=400&&429!==s.status&&500!==s.status){console.error("Could not retrieve tasks");break}e++;const a=e*e*120;await new Promise((t=>setTimeout(t,a)))}return[]}();const s=new Array;for(const e in t){let a=t[e],o={};for(const t in a.custom_fields){let s=a.custom_fields[t];"RID"==s.name&&(o.rid=s.display_value),"Status"==s.name&&(o.status=s.display_value)}s.push(o)}return s}catch(t){console.log(t),console.log("Something went wrong... inpect the page to view the dev console or wait and try again")}}(),t)}),!1);
