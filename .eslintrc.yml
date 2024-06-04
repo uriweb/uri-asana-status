@@ -26,6 +26,7 @@ rules:
 # Some of these aren't really globals, but this is useful for ignoring no-undef for class vars etc.
 globals:
   jQuery: readonly
+  uriAsanaStatus: readonly
 
 # Specify files and directories to ignore
 ignorePatterns:
