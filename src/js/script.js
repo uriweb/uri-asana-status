@@ -8,64 +8,76 @@
 
 	const init = async () => {
 
-		console.log('running...');
+		//console.log('running...');
 
-		// Get element on the page (return false if there isn't one)
-		const el = document.getElementById( 'uri-asana-status' );
+		// Get elements on the page (return false if there isn't one)
+		const els = {
+			parent: document.getElementById( 'uri-asana-status' ),
+		};
 
-		if ( null === el ) {
+		if ( null === els.parent ) {
 			return false;
 		}
 
-		// Get info from the localized variable to make life a little easier
-		const pat = uriAsanaStatus.token;
-		const projectID = uriAsanaStatus.project;
+		els.message = els.parent.getElementsByClassName( 'uri-asana-status-message' )[0];
 
-		// Set the header
-		const httpHeaders = { Authorization: `Bearer ${pat}` };
+		//console.log( 'proceeding...' );
+
+		// Set the headers
+		const httpHeaders = {
+			accept: 'application/json',
+			authorization: `Bearer ${uriAsanaStatus.token}`
+		};
 
 		// Validate the token
-		validateToken( pat, httpHeaders );
+		validateToken( httpHeaders, els );
 
-		// Run the asynchronous extractTasks() function
+		// Run the asynchronous parseTasks() function
 		// This returns an array of objects, each representing a task
-		const tasks = await extractTasks(
-			projectID,
-			httpHeaders
+		const tasks = await parseTasks(
+			uriAsanaStatus.project,
+			httpHeaders,
+			els
 		);
 
-		formatResults( tasks, el );
+		displayResults( tasks, els );
 
 	}
 
-	async function validateToken( pat, httpHeaders ) {
+	/*
+	 * Confirm that the personal access token works
+	 * For more information on personal access tokens, see: https://developers.asana.com/docs/personal-access-token
+	 * For more information on this API endpoint, see: https://developers.asana.com/reference/getuser
+	 */
+	async function validateToken( httpHeaders, els ) {
 
-		console.log('validating token...');
+		//console.log('validating token...');
 
-		// Confirm that the personal access token works
-		// For more information on personal access tokens, see: https://developers.asana.com/docs/personal-access-token
-		// For more information on this API endpoint, see: https://developers.asana.com/reference/getuser
 		const resp = await fetch(`https://app.asana.com/api/1.0/users/me`, {
 			headers: httpHeaders,
 		});
 
 		// Display an error if we do not receive a 200 OK response
-		if (!resp.ok) {
-			const message = "Your personal access token is invalid. For documentation, see: https://developers.asana.com/docs/personal-access-token";
-			console.log(message);
+		if ( !resp.ok ) {
+			els.message.innerHTML = "Your personal access token is invalid. For documentation, see: https://developers.asana.com/docs/personal-access-token";
 			return;
 		}
 	}
 
-	async function extractTasks( projectID, httpHeaders ) {
+	/*
+	 * Parse the tasks returned for the fields we want
+	 */
+	async function parseTasks( projectID, httpHeaders, els ) {
 
-		console.log('extracting tasks...');
+		//console.log('parsing tasks...');
+
+		els.message.innerHTML = '<span class="loading"></span>Loading...';
 
 		try {
 			// Get all tasks from the project
-			let items = await getTasks(projectID, {
-				headers: httpHeaders,
-			});
+			let items = await getTasks( projectID, httpHeaders );
+
+			//console.log('items', items);
 
 			// Parse just the fields we want for each task and push to a new array
 			const tasks = new Array();
@@ -75,34 +87,37 @@
 				let meta = {};
 				for ( const f in item.custom_fields ) {
 					let field = item.custom_fields[f];
-					if ( "RID" == field.name ) {
-						meta.rid = field.display_value;
-					}
-					if ( "Status" == field.name ) {
-						meta.status = field.display_value;
+					switch ( field.name ) {
+						case "RID":
+							meta.rid = field.display_value;
+							break;
+						case "Status":
+							meta.status = field.display_value;
+							break;
+						default:
 					}
 				}
 				tasks.push(meta);
 			}
-		
+
 			// Return the formatted array of tasks
 			return tasks;
-		  } catch (error) {
-			console.log(error);
-			console.log( "Something went wrong... inpect the page to view the dev console or wait and try again" );
-		  }
+		} catch (error) {
+			console.error(error);
+			els.message.innerHTML = "Something went wrong... inpect the page to view the dev console or wait and try again";
+		}
 	}
 
-	async function getTasks() {
+	/* 
+	 * Get the tasks
+	 */
+	async function getTasks( projectID, httpHeaders ) {
 
-		console.log('getting tasks...');
+		///console.log('getting tasks...');
 
 		const options = {
 			method: 'GET',
-			headers: {
-				accept: 'application/json',
-				authorization: 'Bearer ' + uriAsanaStatus.token // asana is a variable localized in 'uri_asana_status_shortcode'
-			}
+			headers: httpHeaders
 		};
 
 		// Max retries for rate limited calls
@@ -116,7 +131,7 @@
 			// For more information on this API endpoint, see: https://developers.asana.com/reference/getitemsforportfolio
 			// For more information on choosing which fields are returned in the response, see: https://developers.asana.com/docs/inputoutput-options
 			const resp = await fetch(
-				'https://app.asana.com/api/1.0/projects/' + uriAsanaStatus.project + '/tasks?opt_fields=name,custom_fields.name,custom_fields.display_value&completed_since=now&opt_pretty=true',
+				`https://app.asana.com/api/1.0/projects/${projectID}/tasks?opt_fields=custom_fields.name,custom_fields.display_value&completed_since=now&opt_pretty=true`,
 				options
 			);
 	  
@@ -142,28 +157,47 @@
 		return [];
 	}
 
-	function formatResults( tasks, el ) {
+	/*
+	 * Display the results
+	 */
+	function displayResults( tasks, els ) {
 
-		console.log('formatting results...');
+		//console.log('formatting results...');
 
-		console.log('tasks', tasks);
+		//console.log('tasks', tasks);
 
 		let results = document.createElement( 'ul' );
-		results.classList = 'uri-asana-results';
+		results.classList = 'uri-asana-results type-mono';
 
 		for ( let t in tasks ) {
 			let task = tasks[t];
 			let li = document.createElement( 'li' );
+
+			// Simplify the statuses
+			if ( true === uriAsanaStatus.simplify || "true" === uriAsanaStatus.simplify ) {
+				switch ( task.status ) {
+					case "Request":
+						task.status = "Recieved";
+						break;
+					case "Scoping":
+						task.status = "Evaluating";
+						break;
+					default:
+						task.status = "In Progress";
+				}
+			}
+
 			li.classList = `task ${task.status.toLowerCase().replace(' ','-')}`;
 
-			let markup = `<div class="task-ID">${task.rid}</div>`;
+			let markup = `<div class="task-id">${task.rid}</div>`;
 			markup += `<div class="task-status">${task.status}</div>`;
 
 			li.innerHTML = markup;
 			results.appendChild( li );
 		}
 
-		el.appendChild( results );
+		els.message.innerHTML = '';
+		els.parent.appendChild( results );
 
 	}
 
