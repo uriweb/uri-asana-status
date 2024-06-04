@@ -158,6 +158,21 @@
 	}
 
 	/*
+	 * Custom comparison function to sort tasks by descending RID
+	 */
+	function compareRID( a, b ) {
+		const x = Number( a.rid.split("-")[1] );
+		const y = Number( b.rid.split("-")[1] );
+		if ( x > y ){
+			return -1;
+		}
+		if ( x < y ){
+			return 1;
+		}
+		return 0;
+	}
+	  
+	/*
 	 * Display the results
 	 */
 	function displayResults( tasks, els ) {
@@ -165,6 +180,8 @@
 		//console.log('formatting results...');
 
 		//console.log('tasks', tasks);
+
+		tasks.sort( compareRID );
 
 		let results = document.createElement( 'ul' );
 		results.classList = 'uri-asana-results type-mono';
@@ -196,7 +213,7 @@
 			results.appendChild( li );
 		}
 
-		els.message.innerHTML = '';
+		els.message.innerHTML = `There are <span>${tasks.length} tasks</span> in the queue:`;
 		els.parent.appendChild( results );
 
 	}
